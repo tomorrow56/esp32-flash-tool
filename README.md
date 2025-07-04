@@ -39,7 +39,15 @@ venv\\Scripts\\activate  # Windows
 pip install -r requirements.txt
 ```
 
-### 4. アプリケーションの起動
+### 4. データベースディレクトリの作成
+
+アプリケーションの実行に必要なデータベースディレクトリを作成します。
+
+```bash
+mkdir -p src/database
+```
+
+### 5. アプリケーションの起動
 ```bash
 python src/main.py
 ```
