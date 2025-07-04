@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Flash Tool</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-microchip"></i> ESP32 Flash Tool</h1>
+                <p>ESP32の内蔵フラッシュをバックアップ・リストア・消去するWebアプリケーション</p>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- 接続設定セクション -->
+            <section class="card">
+                <h2><i class="fas fa-plug"></i> 接続設定</h2>
+                <div class="form-group">
+                    <label for="port-select">シリアルポート:</label>
+                    <div class="input-group">
+                        <select id="port-select" class="form-control">
+                            <option value="">ポートを選択してください</option>
+                        </select>
+                        <button id="refresh-ports" class="btn btn-secondary">
+                            <i class="fas fa-sync-alt"></i> 更新
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="baud-rate">ボーレート:</label>
+                    <select id="baud-rate" class="form-control">
+                        <option value="115200">115200</option>
+                        <option value="460800" selected>460800</option>
+                        <option value="921600">921600</option>
+                    </select>
+                </div>
+                <button id="get-chip-info" class="btn btn-info">
+                    <i class="fas fa-info-circle"></i> チップ情報を取得
+                </button>
+            </section>
+
+            <!-- チップ情報表示 -->
+            <section class="card" id="chip-info-section" style="display: none;">
+                <h2><i class="fas fa-microchip"></i> チップ情報</h2>
+                <div id="chip-info-content"></div>
+            </section>
+
+            <!-- 操作セクション -->
+            <section class="operations">
+                <!-- バックアップ -->
+                <div class="card operation-card">
+                    <h2><i class="fas fa-download"></i> フラッシュバックアップ</h2>
+                    <p>ESP32のフラッシュメモリ全体をバックアップファイルとして保存します。</p>
+                    <p class="estimated-time-info">Estimated Time: <span id="estimated-time">N/A</span></p>
+                    <button id="backup-btn" class="btn btn-primary">
+                        <i class="fas fa-download"></i> バックアップ開始
+                    </button>
+                    <div id="backup-progress" class="progress-container" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                        <div class="progress-text">バックアップ中...</div>
+                    </div>
+                    <div id="backup-result" class="result-container"></div>
+                </div>
+
+                <!-- リストア -->
+                <div class="card operation-card">
+                    <h2><i class="fas fa-upload"></i> フラッシュリストア</h2>
+                    <p>バックアップファイルからESP32のフラッシュメモリを復元します。</p>
+                    <div class="form-group">
+                        <label for="restore-file">リストアファイル:</label>
+                        <input type="file" id="restore-file" class="form-control" accept=".bin">
+                    </div>
+                    <div class="form-group">
+                        <label for="restore-address">書き込みアドレス:</label>
+                        <input type="text" id="restore-address" class="form-control" value="0x0" placeholder="0x0">
+                    </div>
+                    <button id="restore-btn" class="btn btn-warning">
+                        <i class="fas fa-upload"></i> リストア開始
+                    </button>
+                    <div id="restore-progress" class="progress-container" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                        <div class="progress-text">リストア中...</div>
+                    </div>
+                    <div id="restore-result" class="result-container"></div>
+                </div>
+
+                <!-- 消去 -->
+                <div class="card operation-card">
+                    <h2><i class="fas fa-trash"></i> フラッシュ消去</h2>
+                    <p>ESP32のフラッシュメモリ全体を消去します。<strong>注意: この操作は元に戻せません。</strong></p>
+                    <div class="warning-box">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>この操作により、ESP32のすべてのデータが削除されます。実行前に必ずバックアップを取ってください。</span>
+                    </div>
+                    <button id="erase-btn" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> フラッシュ消去
+                    </button>
+                    <div id="erase-progress" class="progress-container" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                        <div class="progress-text">消去中...</div>
+                    </div>
+                    <div id="erase-result" class="result-container"></div>
+                </div>
+            </section>
+        </main>
+
+        <!-- ログセクション -->
+        <section class="card log-section">
+            <h2><i class="fas fa-terminal"></i> ログ</h2>
+            <div id="log-container" class="log-container">
+                <div class="log-entry info">
+                    <span class="timestamp">[${new Date().toLocaleTimeString()}]</span>
+                    <span class="message">ESP32 Flash Toolが起動しました。</span>
+                </div>
+            </div>
+            <button id="clear-log" class="btn btn-secondary btn-sm">
+                <i class="fas fa-broom"></i> ログクリア
+            </button>
+        </section>
+    </div>
+
+    <!-- モーダルダイアログ -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">確認</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="modal-message"></p>
+            </div>
+            <div class="modal-footer">
+                <button id="modal-cancel" class="btn btn-secondary">キャンセル</button>
+                <button id="modal-confirm" class="btn btn-danger">実行</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
